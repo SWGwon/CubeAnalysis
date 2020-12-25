@@ -1,3 +1,5 @@
+#include <ToolRecon.hxx>
+
 #include "Event.hxx"
 
 void Event::Initialize()
@@ -137,14 +139,43 @@ const void Event::Show() const
 void Event::SetFirstObject()
 {
     bool isThereFirstObject = false;
+    Cube::Handle<Cube::ReconTrack> tempVertexTrack;
+    if (mVertex.IsTrack)
+    {
+        tempVertexTrack = mVertex.GetTrack();
+    }
+    else
+    {
+        return;
+    }
     for (auto o : this->GetObjects())
     {
-        if (std::abs(o.GetPdg()) != 13)
+        if (std::abs(o.GetPdg()) != 13 && std::abs(o.GetParentPdg()) != 13)
         {
-            this->mFirstObject = o;
-            this->mFirstObject.IsFirstObject = true;
-            isThereFirstObject = true;
-            break;
+            if (o.IsTrack)
+            {
+                Cube::Handle<Cube::ReconTrack> tempTrack = o.GetTrack();
+                if (Cube::Tool::AreNeighboringObjects(*tempVertexTrack, *tempTrack))
+                {
+                    continue;
+                }
+                this->mFirstObject = o;
+                this->mFirstObject.IsFirstObject = true;
+                isThereFirstObject = true;
+                break;
+            }
+            if (o.IsCluster)
+            {
+                Cube::Handle<Cube::ReconCluster> tempCluster = o.GetCluster();
+                if (Cube::Tool::AreNeighboringObjects(*tempVertexTrack, *tempCluster))
+                {
+                    continue;
+                }
+                this->mFirstObject = o;
+                this->mFirstObject.IsFirstObject = true;
+                isThereFirstObject = true;
+                break;
+            }
         }
     }
     if (!isThereFirstObject)

@@ -29,8 +29,8 @@ class Event
             SetReconObjects();
             Initialize();
             SortObjectByTime();
-            SetFirstObject();
             SetVertex();
+            SetFirstObject();
         }
 
         /**
