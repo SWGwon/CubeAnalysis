@@ -1,5 +1,3 @@
-#include <CubeReconNode.hxx>
-
 #include "Object.hxx"
 
 Object::Object()
@@ -9,6 +7,7 @@ Object::Object()
     mPdg = -1;
     mParentPdg = -1;
     mParentId = -1;
+    mEdep = -1;
 }
 
 Object& Object::operator=(const Object& rhs)
@@ -31,6 +30,8 @@ void swap(Object& first, Object& second) noexcept
     std::swap(first.mParentPdg, second.mParentPdg);
     std::swap(first.mParentId, second.mParentId);
     std::swap(first.mPosition, second.mPosition);
+    std::swap(first.mBackPosition, second.mBackPosition);
+    std::swap(first.mEdep, second.mEdep);
     std::swap(first.mTrack, second.mTrack);
     std::swap(first.mCluster, second.mCluster);
 }
@@ -55,6 +56,10 @@ const int Object::GetParentPdg() const
     return this->mParentPdg;
 }
 
+const double Object::GetEDeposit() const
+{
+    return this->mEdep;
+}
 void Object::SetParentId(int inParentId)
 {
     this->mParentId = inParentId;
@@ -71,34 +76,39 @@ const void Object::Show() const
     {
         std::cout << "cluster:";
         std::cout << " (";
-        std::cout.width(9);
+        std::cout.width(8);
         std::cout.fill(' ');
         std::cout << this->GetPosition().X();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
         std::cout << this->GetPosition().Y();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
         std::cout << this->GetPosition().Z();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
         std::cout << this->GetPosition().T();
         std::cout << ")";
-        std::cout << ", pdg: ";
+        std::cout << ", pdg:";
         std::cout.width(5);
         std::cout.fill(' ');
         std::cout << this->GetPdg();
-        std::cout << ", ParentId: ";
+        std::cout << ", ParentId:";
         std::cout.width(3);
         std::cout.fill(' ');
         std::cout << this->GetParentId();
-        std::cout << ", ParentPdg: ";
+        std::cout << ", ParentPdg:";
         std::cout.width(5);
         std::cout.fill(' ');
-        std::cout << this->GetParentPdg() << std::endl;
+        std::cout << this->GetParentPdg();
+        std::cout << ", edep:";
+        std::cout.width(8);
+        std::cout.fill(' ');
+        std::cout << this->GetEDeposit();
+        std::cout << std::endl;
     }
     if (this->IsTrack)
     {
@@ -117,34 +127,39 @@ const void Object::Show() const
         }
         std::cout << "front:";
         std::cout << " (";
-        std::cout.width(9);
+        std::cout.width(8);
         std::cout.fill(' ');
         std::cout << this->GetPosition().X();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
         std::cout << this->GetPosition().Y();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
         std::cout << this->GetPosition().Z();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
         std::cout << this->GetPosition().T();
         std::cout << ")";
-        std::cout << ", pdg: ";
+        std::cout << ", pdg:";
         std::cout.width(5);
         std::cout.fill(' ');
         std::cout << this->GetPdg();
-        std::cout << ", ParentId: ";
+        std::cout << ", ParentId:";
         std::cout.width(3);
         std::cout.fill(' ');
         std::cout << this->GetParentId();
-        std::cout << ", ParentPdg: ";
+        std::cout << ", ParentPdg:";
         std::cout.width(5);
         std::cout.fill(' ');
-        std::cout << this->GetParentPdg() << std::endl;
+        std::cout << this->GetParentPdg();
+        std::cout << ", edep:";
+        std::cout.width(8);
+        std::cout.fill(' ');
+        std::cout << this->GetEDeposit();
+        std::cout << std::endl;
         if (!this->IsVertex && !this->IsFirstObject && !this->IsLast)
         {
             std::cout << "| | |-";
@@ -159,23 +174,21 @@ const void Object::Show() const
         }
         std::cout << "back: ";
         std::cout << " (";
-        std::cout.width(9);
+        std::cout.width(8);
         std::cout.fill(' ');
-        Cube::Handle<Cube::TrackState> backState = this->GetTrack()->GetNodes().back()->GetState();
-        TLorentzVector pos_back = backState->GetPosition();
-        std::cout << pos_back.X();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << mBackPosition.X();
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
-        std::cout << pos_back.Y();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << mBackPosition.Y();
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
-        std::cout << pos_back.Z();
-        std::cout << ", ";
-        std::cout.width(9);
+        std::cout << mBackPosition.Z();
+        std::cout << ",";
+        std::cout.width(8);
         std::cout.fill(' ');
-        std::cout << pos_back.T();
+        std::cout << mBackPosition.T();
         std::cout << ")";
         std::cout << std::endl;
     }
@@ -184,6 +197,11 @@ const void Object::Show() const
 const TLorentzVector& Object::GetPosition() const
 {
     return this->mPosition;
+}
+
+const TLorentzVector& Object::GetBackPosition() const
+{
+    return this->mBackPosition;
 }
 
 const Cube::Handle<Cube::ReconTrack> Object::GetTrack() const

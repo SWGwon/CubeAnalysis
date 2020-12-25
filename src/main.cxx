@@ -45,7 +45,6 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < inputChain->GetEntries(); i++)
     {
-        std::cout << "event: " << i << std::endl;
         inputChain->GetEntry(i);
         std::unique_ptr<Event> testEvent = NULL;
         try
@@ -73,17 +72,7 @@ int main(int argc, char* argv[])
         if (testEvent->GetPrimaryParticles().GetNumberOfNeutron() != 1) continue;
         if (testEvent->GetPrimaryParticles().GetNumberOfProton() != 0) continue;
         if (testEvent->GetPrimaryParticles().GetNumberOfOther() != 0) continue;
-        /*
-    std::cout << "e: " << testEvent->GetPrimaryParticles().GetNumberOfElectron()
-              << " mu-: " << testEvent->GetPrimaryParticles().GetNumberOfMuon()
-              << " mu+: " << testEvent->GetPrimaryParticles().GetNumberOfAntiMuon()
-              << " p: " <<   testEvent->GetPrimaryParticles().GetNumberOfProton()
-              << " n: " <<   testEvent->GetPrimaryParticles().GetNumberOfNeutron()
-              << " pi: " <<  testEvent->GetPrimaryParticles().GetNumberOfPion()
-              << " g: " <<   testEvent->GetPrimaryParticles().GetNumberOfGamma()
-              << " o: " <<   testEvent->GetPrimaryParticles().GetNumberOfOther()
-              << std::endl;
-              */
+
         int numberOfPrimaryAntiMuon = 0;
         //select single primary anti muon object event
         for (auto o : testEvent->GetObjects())
@@ -100,7 +89,7 @@ int main(int argc, char* argv[])
 
         double earliestTime = testEvent->GetFirstObject().GetPosition().T();
         double muonTime = testEvent->GetVertex().GetPosition().T();
-        //std::cout << "earliestTime - muonTime: " << earliestTime - muonTime << std::endl;
+
         if (testEvent->GetFirstObject().GetPdg() == 2112)
         {
             deltaTNeutron->Fill(earliestTime - muonTime);
@@ -109,7 +98,8 @@ int main(int argc, char* argv[])
         {
             deltaTOther->Fill(earliestTime - muonTime);
         }
-        //testEvent->Show();
+        std::cout << "event: " << i << std::endl;
+        testEvent->Show();
     }
     TCanvas can1;
     deltaTNeutron->Draw();

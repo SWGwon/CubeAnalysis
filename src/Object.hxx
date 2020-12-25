@@ -2,6 +2,7 @@
 #define TRACK_HXX
 
 #include <CubeReconTrack.hxx>
+#include <CubeReconNode.hxx>
 #include <CubeReconCluster.hxx>
 
 /**
@@ -30,6 +31,9 @@ class Object
             mTrack = sourceTrack;
             IsTrack = true;
             mPosition = sourceTrack->GetPosition();
+            Cube::Handle<Cube::TrackState> backState = sourceTrack->GetNodes().back()->GetState();
+            mBackPosition = backState->GetPosition();
+            mEdep = sourceTrack->GetEDeposit();
         }
 
         /**
@@ -43,6 +47,8 @@ class Object
             mCluster = sourceCluster;
             IsCluster = true;
             mPosition = sourceCluster->GetPosition();
+            mBackPosition = mPosition;
+            mEdep = sourceCluster->GetEDeposit();
         }
 
         /**
@@ -81,10 +87,21 @@ class Object
         const int GetParentId() const;
 
         /**
+         * @brief Get energy deposit of this Object
+         */
+        const double GetEDeposit() const;
+
+        /**
          * @brief Get position of this Object
          * @returns TLorentzVector mPosition
          */
         const TLorentzVector& GetPosition() const;
+
+        /**
+         * @brief Get back position of this Object
+         * @returns TLorentzVector mBackPosition
+         */
+        const TLorentzVector& GetBackPosition() const;
 
         /**
          * @brief Show information of this Object
@@ -147,6 +164,11 @@ class Object
         TLorentzVector mPosition;
 
         /**
+         * @brief back position of this Object
+         */
+        TLorentzVector mBackPosition;
+
+        /**
          * @brief pdg code of this Object
          */
         int mPdg;
@@ -160,6 +182,11 @@ class Object
          * @brief parent id of this Object
          */
         int mParentId;
+
+        /**
+         * @brief energy deposit
+         */
+        double mEdep;
 
         /**
          * @brief for operator=

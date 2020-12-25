@@ -129,7 +129,7 @@ const void Event::Show() const
     {
         mFirstObject.Show();
     }
-    std::cout.width(102);
+    std::cout.width(107);
     std::cout.fill('=');
     std::cout << "=" << std::endl;
 }

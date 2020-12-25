@@ -20,6 +20,7 @@
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TProfile.h>
+#include <TCanvas.h>
 
 #include <iostream>
 #include <sstream>
@@ -308,60 +309,14 @@ int main(int argc, char** argv) {
     int firstEntry = 0;
     std::string outputName;
 
-    while (true) {
-        int c = getopt(argc,argv,"n:o:s:");
-        if (c<0) break;
-        switch (c) {
-        case 'n': {
-            std::istringstream tmp(optarg);
-            tmp >> maxEntries;
-            break;
-        }
-        case 'o': {
-            outputName = optarg;
-            break;
-        }
-        case 's': {
-            std::istringstream tmp(optarg);
-            tmp >> firstEntry;
-            break;
-        }
-        default: {
-            std::cout << "Usage: " << std::endl;
-            std::cout << "   "
-                      << "-o <number>  : Output file"
-                      << std::endl
-                      << "-s <number>  : Skip <number> entries"
-                      << std::endl
-                      << "-n <number>  : Process no more than"
-                      << " <number> events."
-                      << std::endl;
-            exit(1);
-        }
-        }
-    }
-
-    std::vector<std::string> inputNames;
+    std::string inputNames;
     if (argc <= optind) throw std::runtime_error("Missing input file");
     while (optind < argc) {
-        inputNames.push_back(argv[optind++]);
-        std::cout << "Input Name " << inputNames.back() << std::endl;
+        inputNames = argv[optind++];
     }
 
-    if (outputName.empty()) {
-        std::cout << "NO OUTPUT FILE!!!!" << std::endl;
-    }
-
-    // Attach to the input tree.
-    std::unique_ptr<TFile> inputFile(
-        new TFile(inputNames.back().c_str(),"old"));
-    if (!inputFile->IsOpen()) throw std::runtime_error("Input file not open");
-
-    /// Attach to the input tree.
-    std::unique_ptr<TChain> inputChain(new TChain("CubeEvents"));
-    for (int i = 0; i<inputNames.size(); ++i) {
-        inputChain->AddFile(inputNames[i].c_str());
-    }
+    std::unique_ptr<TChain> inputChain = std::make_unique<TChain> ("CubeEvents");
+    inputChain->Add(inputNames.c_str());
     Cube::Event *inputEvent = NULL;
     inputChain->SetBranchAddress("Event",&inputEvent);
 
@@ -394,6 +349,14 @@ int main(int argc, char** argv) {
         outputFile->Write();
         outputFile->Close();
     }
+    
+    TCanvas can1;
+    histTimeNeutron->Draw();
+    can1.SaveAs("histTimeNeutron.pdf");
+
+    TCanvas can2;
+    histTimeOther->Draw();
+    can2.SaveAs("histTimeOther.pdf");
 
     return 0;
 }
