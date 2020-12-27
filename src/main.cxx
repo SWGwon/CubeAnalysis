@@ -9,6 +9,7 @@
 #include <ToolTrueDirection.hxx>
 #include <ToolContained.hxx>
 #include <ToolRecon.hxx>
+#include <ToolPrimaryId.hxx>
 
 #include <TFile.h>
 #include <TChain.h>
@@ -63,6 +64,41 @@ int main(int argc, char* argv[])
             std::cout << ", making Event failed" << std::endl;
             continue;
         }
+        /*
+        std::cout << "event: " << i << std::endl;
+        for (int i : testEvent->GetPrimaryParticles().mTrackIdNeutrons)
+        {
+            std::cout << "testEvent->GetPrimaryParticles().mTrackIdNeutrons): " << i << std::endl;
+        }
+        for (int i : testEvent->GetPrimaryParticles().mTrackIdPions)
+        {
+            std::cout <<  "testEvent->GetPrimaryParticles().mTrackIdPions): " << i << std::endl;
+        }
+        for (int i : testEvent->GetPrimaryParticles().mTrackIdGammas)
+        {
+            std::cout <<  "testEvent->GetPrimaryParticles().mTrackIdGammas): " << i << std::endl;
+        }
+        for (int i : testEvent->GetPrimaryParticles().mTrackIdMuons)
+        {
+            std::cout <<  "testEvent->GetPrimaryParticles().mTrackIdMuons): " << i << std::endl;
+        }
+        for (int i : testEvent->GetPrimaryParticles().mTrackIdElectrons)
+        {
+            std::cout <<  "testEvent->GetPrimaryParticles().mTrackIdElectrons): " << i << std::endl;
+        }
+        for (int i : testEvent->GetPrimaryParticles().mTrackIdOthers)
+        {
+            std::cout <<  "testEvent->GetPrimaryParticles().mTrackIdOthers): " << i << std::endl;
+        }
+        for (int i : testEvent->GetPrimaryParticles().mTrackIdAntiMuons)
+        {
+            std::cout <<  "testEvent->GetPrimaryParticles().mTrackIdAntiMuons): " << i << std::endl;
+        }
+        for (int i : testEvent->GetPrimaryParticles().mTrackIdProtons)
+        {
+            std::cout <<  "testEvent->GetPrimaryParticles().mTrackIdProtons): " << i << std::endl;
+        }
+        */
         //CC0pi
         if (testEvent->GetPrimaryParticles().GetNumberOfMuon() != 0) continue;
         if (testEvent->GetPrimaryParticles().GetNumberOfAntiMuon() != 1) continue;
@@ -87,10 +123,27 @@ int main(int argc, char* argv[])
             continue;
         }
 
+        Object firstObject = testEvent->GetFirstObject();
+
         double earliestTime = testEvent->GetFirstObject().GetPosition().T();
         double muonTime = testEvent->GetVertex().GetPosition().T();
 
-        if (testEvent->GetFirstObject().GetPdg() == 2112)
+        Cube::Handle<Cube::ReconTrack> tempTrack;
+        Cube::Handle<Cube::ReconCluster> tempCluster;
+        int earliestTraj;
+        if (firstObject.IsTrack)
+        {
+            tempTrack = firstObject.GetTrack();
+            earliestTraj = Cube::Tool::MainTrajectory(*event,*tempTrack);
+        }
+        if (firstObject.IsCluster)
+        {
+            tempCluster = firstObject.GetCluster();
+            earliestTraj= Cube::Tool::MainTrajectory(*event,*tempCluster);
+        }
+        int earliestPrim = Cube::Tool::PrimaryId(*event,earliestTraj);
+        //if (testEvent->GetFirstObject().GetPdg() == 2112)
+        if (earliestPrim == 1)
         {
             deltaTNeutron->Fill(earliestTime - muonTime);
         }

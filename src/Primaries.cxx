@@ -18,14 +18,53 @@ void Primaries::Initailize()
             throw std::runtime_error("Invalid primary id");
         }
         switch (traj->GetPDGCode()) {
-            case 11: case -11: mElectrons.push_back(*tr); break;
-            case 13:  mMuons.push_back(*tr); break;
-            case -13: mAntiMuons.push_back(*tr); break;
-            case 22: mGammas.push_back(*tr); break;
-            case 111: case 211: case -211: mPions.push_back(*tr); break;
-            case 2112: mNeutrons.push_back(*tr); break;
-            case 2212: mProtons.push_back(*tr); break;
-            default: mOthers.push_back(*tr); break;
+            case 11: case -11: 
+                {
+                    mElectrons.push_back(*tr); 
+                       mTrackIdElectrons.push_back(traj->GetTrackId());
+                    break;
+                }
+            case 13:  
+                {
+                    mMuons.push_back(*tr); 
+                       mTrackIdMuons.push_back(traj->GetTrackId());
+                    break;
+                }
+            case -13: 
+                      {
+                          mAntiMuons.push_back(*tr); 
+                       mTrackIdAntiMuons.push_back(traj->GetTrackId());
+                          break;
+                      }
+            case 22: 
+                      {
+                          mGammas.push_back(*tr); 
+                       mTrackIdGammas.push_back(traj->GetTrackId());
+                          break;
+                      }
+            case 111: case 211: case -211: 
+                      {
+                          mPions.push_back(*tr); 
+                       mTrackIdPions.push_back(traj->GetTrackId());
+                          break;
+                      }
+            case 2112: {
+                           mNeutrons.push_back(*tr); 
+                           mTrackIdNeutrons.push_back(traj->GetTrackId());
+                           break;
+                       }
+            case 2212: 
+                       {
+                           mProtons.push_back(*tr); 
+                           mTrackIdProtons.push_back(traj->GetTrackId());
+                           break;
+                       }
+            default: 
+                       {
+                           mOthers.push_back(*tr); 
+                           mTrackIdOthers.push_back(traj->GetTrackId());
+                           break;
+                       }
         }
     }
 }

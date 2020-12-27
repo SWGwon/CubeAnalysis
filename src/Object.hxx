@@ -52,6 +52,14 @@ class Object
         }
 
         /**
+         * @brief
+         */
+        Object(const Cube::Handle<Cube::ReconObject>& sourceObject)
+        {
+            mObject = sourceObject;
+        }
+
+        /**
          * @brief assignment operator
          */
         Object& operator=(const Object& rhs);
@@ -157,6 +165,11 @@ class Object
          * @brief member cluster
          */
         Cube::Handle<Cube::ReconCluster> mCluster;
+
+        /**
+         * @brief member object
+         */
+        Cube::Handle<Cube::ReconObject> mObject;
 
         /**
          * @brief position of this Object

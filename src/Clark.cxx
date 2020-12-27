@@ -286,6 +286,7 @@ bool AnalyzeEvent(Cube::Event& event) {
 
     int earliestTraj = Cube::Tool::MainTrajectory(event,*earliestObject);
     int earliestPrim = Cube::Tool::PrimaryId(event,earliestTraj);
+    std::cout << "earliestPrim: " << earliestPrim << std::endl;
     if (earliestPrim == 1) {
         histTimeNeutron->Fill(earliestTime - muonTime);
         histNeutronAvgCharge->Fill(avgCharge);
@@ -335,7 +336,6 @@ int main(int argc, char** argv) {
     totalEntries = std::min(totalEntries,firstEntry+maxEntries);
     for (int entry = firstEntry; entry < totalEntries; ++entry) {
         inputChain->GetEntry(entry);
-        std::cout << "event: " << entry << std::endl;
         outputEvent = inputEvent;
         std::cout << "Process event "
                   << entry

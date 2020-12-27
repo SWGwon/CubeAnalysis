@@ -117,6 +117,16 @@ class Primaries
          * @brief std::vector<int> of all primary particles, int trajectoryId
          */
         std::vector<int> mPrimId;
+    public:
+        //for a test
+        std::vector<int> mTrackIdNeutrons;
+        std::vector<int> mTrackIdPions;
+        std::vector<int> mTrackIdGammas;
+        std::vector<int> mTrackIdMuons;
+        std::vector<int> mTrackIdElectrons;
+        std::vector<int> mTrackIdOthers;
+        std::vector<int> mTrackIdAntiMuons;
+        std::vector<int> mTrackIdProtons;
 };
 
 #endif
