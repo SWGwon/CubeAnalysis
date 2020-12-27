@@ -31,6 +31,7 @@ class Event
             SortObjectByTime();
             SetVertex();
             SetFirstObject();
+            SetNumberOfVertexAssociated();
         }
 
         /**
@@ -58,6 +59,8 @@ class Event
          * @brief Get interaction vertex of this event
          */
         const Object& GetVertex() const;
+
+        const int GetNumberOfVertexAssociated() const;
 
     private:
         /**
@@ -119,6 +122,9 @@ class Event
          * @brief interaction vertex of this event
          */
         Object mVertex;
+
+        void SetNumberOfVertexAssociated();
+        int mNumberOfVertexAssociated;
 };
 
 #endif

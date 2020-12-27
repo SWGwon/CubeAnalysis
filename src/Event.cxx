@@ -183,6 +183,46 @@ void Event::SetFirstObject()
     }
 }
 
+void Event::SetNumberOfVertexAssociated()
+{
+    bool isThereFirstObject = false;
+    int tempNumberOfVertexAssociated = 0;
+    Cube::Handle<Cube::ReconTrack> tempVertexTrack;
+    if (mVertex.IsTrack)
+    {
+        tempVertexTrack = mVertex.GetTrack();
+    }
+    else
+    {
+        return;
+    }
+    for (auto o : this->GetObjects())
+    {
+        if (o.IsTrack)
+        {
+            Cube::Handle<Cube::ReconTrack> tempTrack = o.GetTrack();
+            if (Cube::Tool::AreNeighboringObjects(*tempVertexTrack, *tempTrack))
+            {
+                tempNumberOfVertexAssociated++;
+            }
+        }
+        //if (o.IsCluster)
+        //{
+        //    Cube::Handle<Cube::ReconCluster> tempCluster = o.GetCluster();
+        //    if (Cube::Tool::AreNeighboringObjects(*tempVertexTrack, *tempCluster))
+        //    {
+        //        tempNumberOfVertexAssociated++;
+        //    }
+        //}
+    }
+    mNumberOfVertexAssociated = tempNumberOfVertexAssociated;
+}
+
+const int Event::GetNumberOfVertexAssociated() const
+{
+    return this->mNumberOfVertexAssociated;
+}
+
 void Event::SetVertex()
 {
     for (auto o : this->GetObjects())
