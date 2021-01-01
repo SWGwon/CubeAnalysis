@@ -60,6 +60,12 @@ class Event
          */
         const Object& GetVertex() const;
 
+        /**
+         * @brief Trajectories of this event \n
+         * access to trajectory: mTtrajectories[trajectory id]
+         */
+        Cube::Event::G4TrajectoryContainer mTtrajectories;
+
         const int GetNumberOfVertexAssociated() const;
 
     private:
@@ -87,12 +93,6 @@ class Event
          * @brief Get Cube::Event::G4TrajectoryContainer from Cube::Event
          */
         void SetTrajectories();
-
-        /**
-         * @brief Trajectories of this event \n
-         * access to trajectory: mTtrajectories[trajectory id]
-         */
-        Cube::Event::G4TrajectoryContainer mTtrajectories;
 
         /**
          * @brief Get Cube::Handle<Cube::ReconObjectContainer> from Cube::Event

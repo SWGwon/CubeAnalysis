@@ -12,7 +12,6 @@ if(ROOT_FOUND)
 endif(ROOT_FOUND)
 
 set(source
-    src/main.cxx
     src/Event.cxx
     src/Primaries.cxx
     src/Object.cxx
@@ -21,8 +20,17 @@ set(source
 add_subdirectory(CubeRecon/io)
 add_subdirectory(CubeRecon/tools)
 
-add_executable(CubeAnalysis ${source})
+add_executable(CubeAnalysis src/main.cxx ${source})
 target_link_libraries(CubeAnalysis LINK_PUBLIC cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
 
 add_executable(clark src/Clark.cxx)
 target_link_libraries(clark LINK_PUBLIC cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
+
+add_executable(neutronKEResolution src/NeutronKEResolution.cxx ${source})
+target_link_libraries(neutronKEResolution LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
+
+add_executable(true_reco_time src/TrueVsRecoTime.cxx ${source})
+target_link_libraries(true_reco_time LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
+
+add_executable(threshold src/Threshold.cxx)
+target_link_libraries(threshold LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
