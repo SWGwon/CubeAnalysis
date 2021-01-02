@@ -25,3 +25,6 @@ target_link_libraries(threshold LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT
 
 add_executable(variable src/Variables.cxx)
 target_link_libraries(variable LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
+
+add_executable(lownu src/Lownu.cxx)
+target_link_libraries(lownu LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
