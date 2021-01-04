@@ -28,3 +28,6 @@ target_link_libraries(variable LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_
 
 add_executable(lownu src/Lownu.cxx)
 target_link_libraries(lownu LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
+
+add_executable(neutronKE src/NeutronKE.cxx)
+target_link_libraries(neutronKE LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
