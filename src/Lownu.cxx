@@ -15,6 +15,7 @@
 #include <ToolContained.hxx>
 #include <ToolRecon.hxx>
 
+#include <TRandom.h>
 #include <TFile.h>
 #include <TChain.h>
 #include <TTree.h>
@@ -38,7 +39,11 @@ float angle;
 float nbhdist;
 float trueNeutrinoE;
 float recoNeutrinoE;
-float nu;
+float recoNeutronKE;
+float trueNeutronKE;
+float genieNu;
+float recoNuTrueTof;
+float recoNuRecoTof;
 int category; //0: sig track, 1: sig cluster, 2: bkg track, 3: bkg cluster
 auto outputFile = std::make_shared<TFile> ("variableOutput.root","RECREATE");
 auto outputTree = std::make_shared<TTree> ("tree", "tree");
@@ -75,7 +80,11 @@ int main(int argc, char** argv) {
     outputTree->Branch("nbhdist", &nbhdist, "neighbor distance/F");
     outputTree->Branch("trueNeutrinoE", &trueNeutrinoE, "neutirnoEe/F");
     outputTree->Branch("recoNeutrinoE", &recoNeutrinoE, "neutrinoE/F");
-    outputTree->Branch("nu", &nu, "nu/F");
+    outputTree->Branch("recoNeutronKE", &recoNeutronKE, "recoNeutronKE/F");
+    outputTree->Branch("trueNeutronKE", &trueNeutronKE, "trueNeutronKE/F");
+    outputTree->Branch("genieNu", &genieNu, "genieNu/F");
+    outputTree->Branch("recoNuRecoTof", &recoNuRecoTof, "recoNuRecoTof/F");
+    outputTree->Branch("recoNuTrueTof", &recoNuTrueTof, "recoNuTrueTof/F");
     outputTree->Branch("category", &category, "category/I");
 
     int eventNum = 0;
@@ -88,6 +97,8 @@ int main(int argc, char** argv) {
     for (int j = 100; j < fileNum+100; j++) {
         TFile inputFile(Form("/Users/gwon/Analysis/datafiles/full3DST.antineutrino.%d.cuberecon_latest.root",j));
         TFile inputGenieFile(Form("/Users/gwon/CubeAnalysis/datafiles/latest/full3DST.antineutrino.%d.rootracker.root",j+1));
+        if (!inputFile.IsOpen() || !inputGenieFile.IsOpen())
+            continue;
         TTree* inputChain = (TTree*)inputFile.Get("CubeEvents");
         TTree* inputGenieTree = (TTree*)inputGenieFile.Get("gRooTracker");
         inputGenieTree->SetBranchAddress("EvtVtx", &EvtVtx);
@@ -171,8 +182,8 @@ int NumberOfAssociated(const Cube::Handle<Cube::ReconTrack>& muonObject,
 }
 
 Cube::Handle<Cube::ReconObject> GetEarliestObject(const Cube::Handle<Cube::ReconTrack>& muonObject,
-                                                   Cube::Handle<Cube::ReconObjectContainer>& objects,
-                                                   double threshold) {
+                                                  Cube::Handle<Cube::ReconObjectContainer>& objects,
+                                                  double threshold) {
     double earliestTime = 1E+8;
     Cube::Handle<Cube::ReconObject> earliestObject;
     for (auto& o : *objects) {
@@ -254,7 +265,8 @@ void Analysis(Cube::Event* event) {
     nbhdist = -1;
     trueNeutrinoE = -1;
     recoNeutrinoE = -1;
-    nu = -1;
+    recoNeutronKE = -1;
+    trueNeutronKE = -1;
 
     Cube::Event::G4TrajectoryContainer trajectories = event->G4Trajectories;
     Cube::Handle<Cube::ReconObjectContainer> objects = event->GetObjectContainer();
@@ -298,9 +310,51 @@ void Analysis(Cube::Event* event) {
         return;
 
     double muonTime = muonObject->GetPosition().T();
-    double tof = (earliestTrack ? 
+    double recoTof = (earliestTrack ? 
                   earliestTrack->GetMedian().T() - muonTime : 
                   earliestCluster->GetMedian().T() - muonTime);
+
+                std::vector<Cube::Handle<Cube::G4Hit>> earliestSegs
+                    = Cube::Tool::ObjectG4Hits(*event,*earliestObject);
+                double earliestTruth = 1E+8;
+                TVector3 earliestVector;
+                for (std::vector<Cube::Handle<Cube::G4Hit>>::iterator
+                        t = earliestSegs.begin();
+                        t != earliestSegs.end(); ++t) {
+                    if ((*t)->GetStart().T() < earliestTruth) {
+                        earliestTruth = (*t)->GetStart().T();
+                        earliestVector.SetX((*t)->GetStart().X());
+                        earliestVector.SetY((*t)->GetStart().Y());
+                        earliestVector.SetZ((*t)->GetStart().Z());
+                    }
+                }
+
+                std::vector<Cube::Handle<Cube::G4Hit>> muonSegs
+                    = Cube::Tool::ObjectG4Hits(*event,*muonObject);
+                double muonTruth = 1E+8;
+                TVector3 muonVector;
+                for (std::vector<Cube::Handle<Cube::G4Hit>>::iterator
+                        t = muonSegs.begin();
+                        t != muonSegs.end(); ++t) {
+                    if ((*t)->GetStart().T() < muonTruth) {
+                        muonTruth = (*t)->GetStart().T();
+                        muonVector.SetX((*t)->GetStart().X());
+                        muonVector.SetY((*t)->GetStart().Y());
+                        muonVector.SetZ((*t)->GetStart().Z());
+                    }
+                }
+    double trueNu = 0;
+    for (int k = 0; k < StdHepN; k++)
+    {
+        if (StdHepPdg[k] == -13)
+        {
+            trueNu = StdHepP4[0][3] - StdHepP4[k][3];
+            break;
+        }
+    }
+
+    double trueTof = earliestTruth - muonTruth; 
+    double trueLeverArm = (earliestVector - muonVector).Mag();
     leverArm = (earliestTrack? 
                 (earliestTrack->GetPosition().Vect() - muonObject->GetPosition().Vect()).Mag() :
                 (earliestCluster->GetPosition().Vect() - muonObject->GetPosition().Vect()).Mag());
@@ -312,22 +366,27 @@ void Analysis(Cube::Event* event) {
              TMath::Cos((earliestCluster->GetPosition() - muonObject->GetPosition()).Angle(beamDirection)));
     nbhdist = GetNeighborDistance(muonObject, earliestObject, objects);
 
-    double beta = (leverArm/tof)/300;
-    double KE = 939.565*(1./std::pow(1.-std::pow(beta,2),0.5)-1.); 
-    double trueNu = 0;
+    double recoBeta = (leverArm/recoTof)/300;
+    double trueBeta = (trueLeverArm/trueTof)/300;
+    
+    recoNeutronKE = 939.565*(1./std::pow(1.-std::pow(recoBeta,2),0.5)-1.); 
+    trueNeutronKE = 939.565*(1./std::pow(1.-std::pow(trueBeta,2),0.5)-1.); 
+    trueNeutrinoE = StdHepP4[0][3]*1000.;
+    recoNeutrinoE = recoNeutronKE + muonE * gRandom->Gaus(1,0.04) + 40;
+    nuEAfterSelection.Fill(StdHepP4[0][3]);
+    nuEAfterSelectionForDivide.Fill(StdHepP4[0][3]);
+    genieNu = trueNu*1000. - 40;
+    recoNuRecoTof = recoNeutronKE; 
+    recoNuTrueTof = trueNeutronKE; 
 
-    for (int k = 0; k < StdHepN; k++)
-    {
-        if (StdHepPdg[k] == -13)
-        {
-            trueNu = StdHepP4[0][3] - StdHepP4[k][3];
-            break;
-        }
-    }
+    int parentId = earliestTraj->GetParentId();
+    if (parentId > trajectories.size())
+        return;
+    int parentPdg = trajectories[parentId]->GetPDGCode();
 
     if (earliestTrack) {
         trackLength = GetTrackLength(earliestTrack);
-        if (earliestTraj->GetPDGCode() == 2112) {
+        if (earliestTraj->GetPDGCode() == 2112 || parentPdg == 2112) {
             category = 0;
         }
         else {
@@ -336,27 +395,23 @@ void Analysis(Cube::Event* event) {
     }
 
     if (earliestCluster) {
-        if (earliestTraj->GetPDGCode() == 2112) {
+        if (earliestTraj->GetPDGCode() == 2112 || parentPdg == 2112) {
             category = 1;
         } else {
             category = 3;
         }
         nuEBeforeSelection.Fill(StdHepP4[0][3]);
-        if (eDep > 600 && nbhdist < 130 && angle < 0.1) //selection
-        {
+        
+        //selection
+        //if (eDep > 600 && nbhdist < 130 && angle < 0.1) {
             std::cout << "leverArm: " << leverArm << std::endl;
             std::cout << "eDep: " << eDep << std::endl;
             std::cout << "trackLength: " << trackLength << std::endl;
             std::cout << "angle: " << TMath::Cos(angle) << std::endl;
             std::cout << "neighborDistance: " << nbhdist << std::endl;
             std::cout << " asdasdasdasdasda " << std::endl;
-            trueNeutrinoE = StdHepP4[0][3]*1000.;
-            recoNeutrinoE = KE + muonE + 68;
-            nu = KE;
-            nuEAfterSelection.Fill(StdHepP4[0][3]);
-            nuEAfterSelectionForDivide.Fill(StdHepP4[0][3]);
-            true_reco_nu.Fill(KE, trueNu*1000);
-            outputTree->Fill();
-        }
+            true_reco_nu.Fill(recoNeutronKE, trueNu*1000);
+        //}
     }
+            outputTree->Fill();
 }
