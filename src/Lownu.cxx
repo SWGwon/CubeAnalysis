@@ -99,6 +99,8 @@ int main(int argc, char** argv) {
         TFile inputGenieFile(Form("/Users/gwon/CubeAnalysis/datafiles/latest/full3DST.antineutrino.%d.rootracker.root",j+1));
         if (!inputFile.IsOpen() || !inputGenieFile.IsOpen())
             continue;
+        if (inputFile.TestBit(TFile::kRecovered) || inputGenieFile.TestBit(TFile::kRecovered))
+            continue;
         TTree* inputChain = (TTree*)inputFile.Get("CubeEvents");
         TTree* inputGenieTree = (TTree*)inputGenieFile.Get("gRooTracker");
         inputGenieTree->SetBranchAddress("EvtVtx", &EvtVtx);
