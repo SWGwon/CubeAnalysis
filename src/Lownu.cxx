@@ -175,7 +175,23 @@ int NumberOfAssociated(const Cube::Handle<Cube::ReconTrack>& muonObject,
                        Cube::Handle<Cube::ReconObjectContainer>& objects) {
     int numberOfMuonAssociated = 0;
     for (auto& o : *objects) {
-        if (Cube::Tool::AreNeighboringObjects(*muonObject, *o)) {
+        //if (Cube::Tool::AreNeighboringObjects(*muonObject, *o)) {
+        //    numberOfMuonAssociated++;
+        //    continue;
+        //}
+        TVector3 muonVertex;
+        muonVertex.SetX(muonObject->GetPosition().X());
+        muonVertex.SetY(muonObject->GetPosition().Y());
+        muonVertex.SetZ(muonObject->GetPosition().Z());
+        TVector3 objectPosition;
+        Cube::Handle<Cube::ReconTrack> tempTrack = o;
+        Cube::Handle<Cube::ReconCluster> tempCluster = o;
+        if (!tempCluster && !tempTrack)
+            continue;
+        objectPosition.SetX(tempTrack? tempTrack->GetPosition().X() : tempCluster->GetPosition().X());
+        objectPosition.SetY(tempTrack? tempTrack->GetPosition().Y() : tempCluster->GetPosition().Y());
+        objectPosition.SetZ(tempTrack? tempTrack->GetPosition().Z() : tempCluster->GetPosition().Z());
+        if ((objectPosition - muonVertex).Mag() < 40) {
             numberOfMuonAssociated++;
             continue;
         }
@@ -313,38 +329,38 @@ void Analysis(Cube::Event* event) {
 
     double muonTime = muonObject->GetPosition().T();
     double recoTof = (earliestTrack ? 
-                  earliestTrack->GetMedian().T() - muonTime : 
-                  earliestCluster->GetMedian().T() - muonTime);
+                      earliestTrack->GetMedian().T() - muonTime : 
+                      earliestCluster->GetMedian().T() - muonTime);
 
-                std::vector<Cube::Handle<Cube::G4Hit>> earliestSegs
-                    = Cube::Tool::ObjectG4Hits(*event,*earliestObject);
-                double earliestTruth = 1E+8;
-                TVector3 earliestVector;
-                for (std::vector<Cube::Handle<Cube::G4Hit>>::iterator
-                        t = earliestSegs.begin();
-                        t != earliestSegs.end(); ++t) {
-                    if ((*t)->GetStart().T() < earliestTruth) {
-                        earliestTruth = (*t)->GetStart().T();
-                        earliestVector.SetX((*t)->GetStart().X());
-                        earliestVector.SetY((*t)->GetStart().Y());
-                        earliestVector.SetZ((*t)->GetStart().Z());
-                    }
-                }
+    std::vector<Cube::Handle<Cube::G4Hit>> earliestSegs
+        = Cube::Tool::ObjectG4Hits(*event,*earliestObject);
+    double earliestTruth = 1E+8;
+    TVector3 earliestVector;
+    for (std::vector<Cube::Handle<Cube::G4Hit>>::iterator
+            t = earliestSegs.begin();
+            t != earliestSegs.end(); ++t) {
+        if ((*t)->GetStart().T() < earliestTruth) {
+            earliestTruth = (*t)->GetStart().T();
+            earliestVector.SetX((*t)->GetStart().X());
+            earliestVector.SetY((*t)->GetStart().Y());
+            earliestVector.SetZ((*t)->GetStart().Z());
+        }
+    }
 
-                std::vector<Cube::Handle<Cube::G4Hit>> muonSegs
-                    = Cube::Tool::ObjectG4Hits(*event,*muonObject);
-                double muonTruth = 1E+8;
-                TVector3 muonVector;
-                for (std::vector<Cube::Handle<Cube::G4Hit>>::iterator
-                        t = muonSegs.begin();
-                        t != muonSegs.end(); ++t) {
-                    if ((*t)->GetStart().T() < muonTruth) {
-                        muonTruth = (*t)->GetStart().T();
-                        muonVector.SetX((*t)->GetStart().X());
-                        muonVector.SetY((*t)->GetStart().Y());
-                        muonVector.SetZ((*t)->GetStart().Z());
-                    }
-                }
+    std::vector<Cube::Handle<Cube::G4Hit>> muonSegs
+        = Cube::Tool::ObjectG4Hits(*event,*muonObject);
+    double muonTruth = 1E+8;
+    TVector3 muonVector;
+    for (std::vector<Cube::Handle<Cube::G4Hit>>::iterator
+            t = muonSegs.begin();
+            t != muonSegs.end(); ++t) {
+        if ((*t)->GetStart().T() < muonTruth) {
+            muonTruth = (*t)->GetStart().T();
+            muonVector.SetX((*t)->GetStart().X());
+            muonVector.SetY((*t)->GetStart().Y());
+            muonVector.SetZ((*t)->GetStart().Z());
+        }
+    }
     double trueNu = 0;
     for (int k = 0; k < StdHepN; k++)
     {
