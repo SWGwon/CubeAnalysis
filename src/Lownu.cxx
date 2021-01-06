@@ -175,26 +175,26 @@ int NumberOfAssociated(const Cube::Handle<Cube::ReconTrack>& muonObject,
                        Cube::Handle<Cube::ReconObjectContainer>& objects) {
     int numberOfMuonAssociated = 0;
     for (auto& o : *objects) {
-        //if (Cube::Tool::AreNeighboringObjects(*muonObject, *o)) {
-        //    numberOfMuonAssociated++;
-        //    continue;
-        //}
-        TVector3 muonVertex;
-        muonVertex.SetX(muonObject->GetPosition().X());
-        muonVertex.SetY(muonObject->GetPosition().Y());
-        muonVertex.SetZ(muonObject->GetPosition().Z());
-        TVector3 objectPosition;
-        Cube::Handle<Cube::ReconTrack> tempTrack = o;
-        Cube::Handle<Cube::ReconCluster> tempCluster = o;
-        if (!tempCluster && !tempTrack)
-            continue;
-        objectPosition.SetX(tempTrack? tempTrack->GetPosition().X() : tempCluster->GetPosition().X());
-        objectPosition.SetY(tempTrack? tempTrack->GetPosition().Y() : tempCluster->GetPosition().Y());
-        objectPosition.SetZ(tempTrack? tempTrack->GetPosition().Z() : tempCluster->GetPosition().Z());
-        if ((objectPosition - muonVertex).Mag() < 40) {
+        if (Cube::Tool::AreNeighboringObjects(*muonObject, *o)) {
             numberOfMuonAssociated++;
             continue;
         }
+        //TVector3 muonVertex;
+        //muonVertex.SetX(muonObject->GetPosition().X());
+        //muonVertex.SetY(muonObject->GetPosition().Y());
+        //muonVertex.SetZ(muonObject->GetPosition().Z());
+        //TVector3 objectPosition;
+        //Cube::Handle<Cube::ReconTrack> tempTrack = o;
+        //Cube::Handle<Cube::ReconCluster> tempCluster = o;
+        //if (!tempCluster && !tempTrack)
+        //    continue;
+        //objectPosition.SetX(tempTrack? tempTrack->GetPosition().X() : tempCluster->GetPosition().X());
+        //objectPosition.SetY(tempTrack? tempTrack->GetPosition().Y() : tempCluster->GetPosition().Y());
+        //objectPosition.SetZ(tempTrack? tempTrack->GetPosition().Z() : tempCluster->GetPosition().Z());
+        //if ((objectPosition - muonVertex).Mag() < 40) {
+        //    numberOfMuonAssociated++;
+        //    continue;
+        //}
     }
     return numberOfMuonAssociated;
 }
