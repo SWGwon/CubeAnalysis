@@ -175,26 +175,26 @@ int NumberOfAssociated(const Cube::Handle<Cube::ReconTrack>& muonObject,
                        Cube::Handle<Cube::ReconObjectContainer>& objects) {
     int numberOfMuonAssociated = 0;
     for (auto& o : *objects) {
-        if (Cube::Tool::AreNeighboringObjects(*muonObject, *o)) {
-            numberOfMuonAssociated++;
-            continue;
-        }
-        //TVector3 muonVertex;
-        //muonVertex.SetX(muonObject->GetPosition().X());
-        //muonVertex.SetY(muonObject->GetPosition().Y());
-        //muonVertex.SetZ(muonObject->GetPosition().Z());
-        //TVector3 objectPosition;
-        //Cube::Handle<Cube::ReconTrack> tempTrack = o;
-        //Cube::Handle<Cube::ReconCluster> tempCluster = o;
-        //if (!tempCluster && !tempTrack)
-        //    continue;
-        //objectPosition.SetX(tempTrack? tempTrack->GetPosition().X() : tempCluster->GetPosition().X());
-        //objectPosition.SetY(tempTrack? tempTrack->GetPosition().Y() : tempCluster->GetPosition().Y());
-        //objectPosition.SetZ(tempTrack? tempTrack->GetPosition().Z() : tempCluster->GetPosition().Z());
-        //if ((objectPosition - muonVertex).Mag() < 40) {
+        //if (Cube::Tool::AreNeighboringObjects(*muonObject, *o)) {
         //    numberOfMuonAssociated++;
         //    continue;
         //}
+        TVector3 muonVertex;
+        muonVertex.SetX(muonObject->GetPosition().X());
+        muonVertex.SetY(muonObject->GetPosition().Y());
+        muonVertex.SetZ(muonObject->GetPosition().Z());
+        TVector3 objectPosition;
+        Cube::Handle<Cube::ReconTrack> tempTrack = o;
+        Cube::Handle<Cube::ReconCluster> tempCluster = o;
+        if (!tempCluster && !tempTrack)
+            continue;
+        objectPosition.SetX(tempTrack? tempTrack->GetPosition().X() : tempCluster->GetPosition().X());
+        objectPosition.SetY(tempTrack? tempTrack->GetPosition().Y() : tempCluster->GetPosition().Y());
+        objectPosition.SetZ(tempTrack? tempTrack->GetPosition().Z() : tempCluster->GetPosition().Z());
+        if ((objectPosition - muonVertex).Mag() < 40) {
+            numberOfMuonAssociated++;
+            continue;
+        }
     }
     return numberOfMuonAssociated;
 }
@@ -292,6 +292,7 @@ void Analysis(Cube::Event* event) {
         return;
 
     //single muon track selection
+    //There should be only one muon track object
     Cube::Handle<Cube::ReconTrack> muonObject;
     try {
         muonObject = GetMuonObject(event, trajectories, objects);
@@ -322,6 +323,7 @@ void Analysis(Cube::Event* event) {
         return;
     }
 
+    //earliestObject check
     Cube::Handle<Cube::ReconTrack> earliestTrack = earliestObject;
     Cube::Handle<Cube::ReconCluster> earliestCluster = earliestObject;
     if (!earliestCluster && !earliestTrack)
@@ -332,6 +334,7 @@ void Analysis(Cube::Event* event) {
                       earliestTrack->GetMedian().T() - muonTime : 
                       earliestCluster->GetMedian().T() - muonTime);
 
+    //true time, position of earliestObject
     std::vector<Cube::Handle<Cube::G4Hit>> earliestSegs
         = Cube::Tool::ObjectG4Hits(*event,*earliestObject);
     double earliestTruth = 1E+8;
@@ -346,7 +349,7 @@ void Analysis(Cube::Event* event) {
             earliestVector.SetZ((*t)->GetStart().Z());
         }
     }
-
+    //true time, position of muon
     std::vector<Cube::Handle<Cube::G4Hit>> muonSegs
         = Cube::Tool::ObjectG4Hits(*event,*muonObject);
     double muonTruth = 1E+8;
@@ -361,6 +364,7 @@ void Analysis(Cube::Event* event) {
             muonVector.SetZ((*t)->GetStart().Z());
         }
     }
+
     double trueNu = 0;
     for (int k = 0; k < StdHepN; k++)
     {
@@ -397,6 +401,7 @@ void Analysis(Cube::Event* event) {
     recoNuRecoTof = recoNeutronKE; 
     recoNuTrueTof = trueNeutronKE; 
 
+    //parentPDG
     int parentId = earliestTraj->GetParentId();
     if (parentId > trajectories.size())
         return;
@@ -427,7 +432,6 @@ void Analysis(Cube::Event* event) {
             std::cout << "trackLength: " << trackLength << std::endl;
             std::cout << "angle: " << TMath::Cos(angle) << std::endl;
             std::cout << "neighborDistance: " << nbhdist << std::endl;
-            std::cout << " asdasdasdasdasda " << std::endl;
             true_reco_nu.Fill(recoNeutronKE, trueNu*1000);
         //}
     }
