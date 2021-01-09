@@ -31,7 +31,7 @@
 #include <getopt.h>
 
 TVector3 beamDirection(0,0,1);
-Cube::Event* event = NULL;
+Cube::Event* event = nullptr;
 float leverArm;
 float eDep;
 float trackLength;
@@ -121,25 +121,6 @@ int main(int argc, char** argv) {
     outputFile->Write();
     outputFile->Close();
 
-    TCanvas nuE;
-    nuEBeforeSelection.Draw();
-    nuE.SaveAs("nuEBeforeSelection.pdf");
-    nuE.SaveAs("nuEBeforeSelection.C");
-    nuE.Clear();
-    nuEAfterSelection.Draw();
-    nuE.SaveAs("nuEAfterSelection.pdf");
-    nuE.SaveAs("nuEAfterSelection.C");
-    nuE.Clear();
-    nuEAfterSelectionForDivide.Divide(&nuEBeforeSelection);
-    nuEAfterSelectionForDivide.Draw();
-    nuE.SaveAs("nuEAfterSelectionForDivide.pdf");
-    nuE.SaveAs("nuEAfterSelectionForDivide.C");
-    nuE.Clear();
-    nuE.SetLogz();
-    true_reco_nu.Draw("colz");
-    nuE.SaveAs("true_reco_nu.pdf");
-    nuE.SaveAs("true_reco_nu.C");
-
     return 0;
 }
 
@@ -213,7 +194,7 @@ Cube::Handle<Cube::ReconObject> GetEarliestObject(const Cube::Handle<Cube::Recon
         Cube::Handle<Cube::ReconTrack> track = o;
         Cube::Handle<Cube::ReconCluster> cluster = o;
         if (track) {
-            objTime = track->GetMedian().T();
+            objTime = track->GetPosition().T();
             objEDep = track->GetEDeposit();
         } else if (cluster) {
             objTime = cluster->GetMedian().T();
@@ -301,7 +282,10 @@ void Analysis(Cube::Event* event) {
         return;
     }
 
-    //single track selectrion
+    //single track selection
+    //The muon track should be isolated from everything
+    //I don't think this is right definition of single track channel
+    //But still it's ok
     if (NumberOfAssociated(muonObject, objects) != 1)
         return;
 
@@ -331,7 +315,7 @@ void Analysis(Cube::Event* event) {
 
     double muonTime = muonObject->GetPosition().T();
     double recoTof = (earliestTrack ? 
-                      earliestTrack->GetMedian().T() - muonTime : 
+                      earliestTrack->GetPosition().T() - muonTime : 
                       earliestCluster->GetMedian().T() - muonTime);
 
     //true time, position of earliestObject
