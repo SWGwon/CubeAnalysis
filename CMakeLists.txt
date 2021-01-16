@@ -17,17 +17,8 @@ add_subdirectory(CubeRecon/tools)
 add_executable(clark src/Clark.cxx)
 target_link_libraries(clark LINK_PUBLIC cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
 
-add_executable(true_reco_time src/TrueVsRecoTime.cxx)
-target_link_libraries(true_reco_time LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
-
-add_executable(threshold src/Threshold.cxx)
-target_link_libraries(threshold LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
-
-add_executable(variable src/Variables.cxx)
-target_link_libraries(variable LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
-
 add_executable(lownu src/Lownu.cxx)
 target_link_libraries(lownu LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
 
-add_executable(neutronKE src/NeutronKE.cxx)
-target_link_libraries(neutronKE LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})
+add_executable(multitrack src/MultiTrack.cxx)
+target_link_libraries(multitrack LINK_PUBLIC  cuberecon_io cuberecon_tools ${ROOT_LIBRARIES})

@@ -49,6 +49,7 @@ float neighborDistance;
 int primaryPDG;
 int parentPDG;
 int trackNum;
+int objectPDG;
 //0: sig track, 1: sig cluster, 2: bkg track, 3: bkg cluster
 int category;
 
@@ -95,6 +96,7 @@ int main(int argc, char** argv) {
     outputTree->Branch("category", &category, "category/I");
     outputTree->Branch("primaryPDG", &primaryPDG, "primaryPDG/I");
     outputTree->Branch("parentPDG", &parentPDG, "parentPDG/I");
+    outputTree->Branch("objectPDG", &objectPDG, "objectPDG/I");
 
     int eventNum = 0;
     int fileNum = 0;
@@ -289,6 +291,7 @@ void Analysis(Cube::Event* event) {
     category = -10;
     primaryPDG = -10;
     parentPDG = -10;
+    objectPDG = -10;
 
     Cube::Event::G4TrajectoryContainer trajectories = event->G4Trajectories;
     Cube::Handle<Cube::ReconObjectContainer> objects = event->GetObjectContainer();
@@ -380,9 +383,9 @@ void Analysis(Cube::Event* event) {
     trackNum = NumberOfAssociated(muonObject, objects);
 
     int earliestTrajID = Cube::Tool::MainTrajectory(*event,*earliestObject);
-    int muonTrajID = Cube::Tool::MainTrajectory(*event,*muonObject);
+    //int muonTrajID = Cube::Tool::MainTrajectory(*event,*muonObject);
     int earliestPrim = Cube::Tool::PrimaryId(*event,earliestTrajID);
-    int muonPrim = Cube::Tool::PrimaryId(*event,muonTrajID);
+    //int muonPrim = Cube::Tool::PrimaryId(*event,muonTrajID);
     //std::cout << "earliestPrim: " << earliestPrim << std::endl;
     //std::cout << "earliestTrajID: " << earliestTrajID << std::endl;
     //std::cout << "muonPrim: " << muonPrim << std::endl;
@@ -396,14 +399,17 @@ void Analysis(Cube::Event* event) {
     int parentPdg = 0;
     if (parentId == -1) {
         parentPdg = earliestTraj->GetPDGCode();
+        //std::cout << "parentPdg: " << parentPdg << std::endl;
+        //std::cout << "trajectories[earliestPrim]->GetPDGCode()" << trajectories[earliestPrim]->GetPDGCode() << std::endl;
     } else {
         parentPdg = trajectories[parentId]->GetPDGCode();
     }
+    objectPDG = earliestTraj->GetPDGCode();
 
     //0: sig track, 1: sig cluster, 2: bkg track, 3: bkg cluster
     if (earliestTrack) {
+        std::cout << "track recoNeutronKE: " << recoNeutronKE << std::endl;
         trackLength = GetTrackLength(earliestTrack);
-        //if (earliestTraj->GetPDGCode() == 2112 || parentPdg == 2112) {
         if (trajectories[earliestPrim]->GetPDGCode() == 2112 && parentPdg == 2112) {
             category = 0;
         }
@@ -413,13 +419,10 @@ void Analysis(Cube::Event* event) {
     }
 
     if (earliestCluster) {
-        //if (earliestTraj->GetPDGCode() == 2112 || parentPdg == 2112) {
         if (trajectories[earliestPrim]->GetPDGCode() == 2112 && parentPdg == 2112) {
             category = 1;
         } else {
             category = 3;
-            std::cout << "background primary pdg: " << trajectories[earliestPrim]->GetPDGCode() << std::endl;
-            std::cout << "background parent pdg: " << parentPdg << std::endl;
         }
     }
     parentPDG = parentPdg;
