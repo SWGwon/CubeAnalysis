@@ -72,6 +72,7 @@ int StdHepN;
 const double THRESHOLD = 20;
 
 void Analysis(Cube::Event* event);
+int singleTrack = 0;
 
 int main(int argc, char** argv) {
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
@@ -141,130 +142,9 @@ int main(int argc, char** argv) {
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     std::cout << "took " << sec.count() << "sec" << std::endl;
 
+    std::cout << "singleTrack: " << singleTrack << std::endl;
+
     return 0;
-}
-
-Cube::Handle<Cube::ReconTrack> GetMuonObject(Cube::Event* event, 
-                                             Cube::Event::G4TrajectoryContainer& trajectories, 
-                                             Cube::Handle<Cube::ReconObjectContainer>& objects) {
-    int muonLike = 0;
-    Cube::Handle<Cube::ReconTrack> muonObject;
-    for (auto& o : *objects) {
-        Cube::Handle<Cube::ReconTrack> track = o;
-        if (!track) 
-            continue;
-        int mainTraj = Cube::Tool::MainTrajectory(*event, *track);
-        Cube::Handle<Cube::G4Trajectory> traj = trajectories[mainTraj];
-        if (traj && traj->GetPDGCode() == -13 && traj->GetParentId() == -1) {
-            muonLike++;
-            muonE = traj->GetInitialMomentum().E();
-            muonObject = track;
-        }
-        if (muonLike > 1) {
-            throw std::runtime_error("more than 1 anti muon track");
-        }
-    }
-
-    if (!muonObject) {
-        throw std::runtime_error("no anti muon track");
-    }
-
-    return muonObject;
-}
-
-int NumberOfAssociated(const Cube::Handle<Cube::ReconTrack>& muonObject, 
-                       Cube::Handle<Cube::ReconObjectContainer>& objects) {
-    int numberOfMuonAssociated = 0;
-    for (auto& o : *objects) {
-        //if (Cube::Tool::AreNeighboringObjects(*muonObject, *o)) {
-        //    numberOfMuonAssociated++;
-        //    continue;
-        //}
-        TVector3 muonVertex;
-        muonVertex.SetX(muonObject->GetPosition().X());
-        muonVertex.SetY(muonObject->GetPosition().Y());
-        muonVertex.SetZ(muonObject->GetPosition().Z());
-        TVector3 objectPosition;
-        Cube::Handle<Cube::ReconTrack> tempTrack = o;
-    //    Cube::Handle<Cube::ReconCluster> tempCluster = o;
-        if (!tempTrack)
-            continue;
-        //objectPosition.SetX(tempTrack? tempTrack->GetPosition().X() : tempCluster->GetPosition().X());
-        //objectPosition.SetY(tempTrack? tempTrack->GetPosition().Y() : tempCluster->GetPosition().Y());
-        //objectPosition.SetZ(tempTrack? tempTrack->GetPosition().Z() : tempCluster->GetPosition().Z());
-        objectPosition.SetX(tempTrack->GetPosition().X());
-        objectPosition.SetY(tempTrack->GetPosition().Y());
-        objectPosition.SetZ(tempTrack->GetPosition().Z());
-        //if ((objectPosition - muonVertex).Mag() < 40) {
-        if ((objectPosition - muonVertex).Mag() < 40) {
-        //if ((objectPosition - muonVertex).Mag() < 20) {
-            numberOfMuonAssociated++;
-            continue;
-        }
-    }
-    return numberOfMuonAssociated;
-}
-
-Cube::Handle<Cube::ReconObject> GetEarliestObject(const Cube::Handle<Cube::ReconTrack>& muonObject,
-                                                  Cube::Handle<Cube::ReconObjectContainer>& objects,
-                                                  double threshold) {
-    double earliestTime = 1E+8;
-    Cube::Handle<Cube::ReconObject> earliestObject;
-    for (auto& o : *objects) {
-        if (Cube::Tool::AreNeighboringObjects(*muonObject, *o, 30)) {
-            continue;
-        }
-        double objTime = -1.0;
-        double objEDep = -1.0;
-        Cube::Handle<Cube::ReconTrack> track = o;
-        Cube::Handle<Cube::ReconCluster> cluster = o;
-        if (track) {
-            objTime = track->GetMedian().T();
-            objEDep = track->GetEDeposit();
-        } else if (cluster) {
-            objTime = cluster->GetMedian().T();
-            objEDep = cluster->GetEDeposit();
-        } else 
-            continue;
-        if (objTime < earliestTime && objEDep > threshold) {
-            earliestTime = objTime;
-            earliestObject = o;
-        }
-    }
-    if (!earliestObject) {
-        throw std::runtime_error("no earliest object candidate");
-    }
-    return earliestObject;
-}
-
-Cube::Handle<Cube::G4Trajectory> GetObjectTrajectory(Cube::Event* event,  
-                                                     Cube::Handle<Cube::ReconObject>& object,
-                                                     Cube::Event::G4TrajectoryContainer& trajectories) {
-    int mainTraj = Cube::Tool::MainTrajectory(*event, *object);
-    Cube::Handle<Cube::G4Trajectory> Traj = trajectories[mainTraj];
-    if (!Traj) {
-        throw std::runtime_error("no Traj corresponding object");
-    } else {
-        return Traj;
-    }
-}
-
-double GetNeighborDistance(Cube::Handle<Cube::ReconTrack>& muonObject, 
-                           Cube::Handle<Cube::ReconObject>& earliestObject,
-                           Cube::Handle<Cube::ReconObjectContainer>& objects) {
-    double neighborDistance = 1E+8;
-    for (auto& o : *objects) {
-        if (o == muonObject) continue;
-        if (o == earliestObject) continue;
-        double distance = Cube::Tool::DistanceBetweenObjects(*earliestObject, *o);
-        if (distance < neighborDistance) {
-            neighborDistance = distance;
-        }
-    }
-    if (neighborDistance == 1E+8) {
-        neighborDistance = -1;
-    }
-    return neighborDistance;
 }
 
 double GetTrackLength(Cube::Handle<Cube::ReconTrack>& earliestTrack) {
@@ -280,8 +160,22 @@ double GetTrackLength(Cube::Handle<Cube::ReconTrack>& earliestTrack) {
     return tempTrackLength;
 }
 
-void Analysis(Cube::Event* event) {
+bool isValidObject(const Cube::Handle<Cube::ReconObject>& object)
+{
+    Cube::Handle<Cube::ReconTrack> track = object;
+    Cube::Handle<Cube::ReconCluster> cluster = object;
+    if (!track && !cluster)
+        return false;
+    
+    int trajId = Cube::Tool::MainTrajectory(*event, *object);
+    if (trajId == -1) 
+        return false;
 
+    return true;
+}
+
+void Analysis(Cube::Event* event) 
+{
     trueNeutrinoE = -10;
     recoNeutrinoE = -10;
     trueNu = -10;
@@ -295,7 +189,6 @@ void Analysis(Cube::Event* event) {
     trackLength = -10;
     angle = -10;
     eDep = -10;
-    neighborDistance = -10;
     trackNum = -10;
     category = -10;
     primaryPDG = -10;
@@ -325,48 +218,109 @@ void Analysis(Cube::Event* event) {
     if (!objects) 
         return;
 
-    //single muon track selection
-    //There should be only one muon track object
-    Cube::Handle<Cube::ReconTrack> muonObject;
-    try {
-        muonObject = GetMuonObject(event, trajectories, objects);
-    } catch (std::runtime_error e) {
-        std::cout << e.what() << std::endl;
+    //muon vector
+    std::vector<Cube::Handle<Cube::ReconObject>> muonObjectVector;
+    for (const auto& o : *objects) {
+        if (!isValidObject(o))
+            continue;
+        Cube::Handle<Cube::ReconTrack> track = o;
+        Cube::Handle<Cube::ReconCluster> cluster = o;
+        int mainTraj = Cube::Tool::MainTrajectory(*event, *o);
+        Cube::Handle<Cube::G4Trajectory> traj = trajectories[mainTraj];
+        if (traj && traj->GetPDGCode() == -13 && traj->GetParentId() == -1) {
+            muonObjectVector.push_back(o);
+        }
+    }
+
+    //select vertex
+    //earliest muon 'track' position
+    TLorentzVector vertex;
+    float tempMuonT = 10E+5;
+    for (const auto& m : muonObjectVector) {
+        if (!isValidObject(m))
+            continue;
+        Cube::Handle<Cube::ReconTrack> track = m;
+        if (track && track->GetPosition().T() < tempMuonT) {
+            int mainTraj = Cube::Tool::MainTrajectory(*event, *track);
+            Cube::Handle<Cube::G4Trajectory> traj = trajectories[mainTraj];
+            tempMuonT = track->GetPosition().T();
+            muonE = traj->GetInitialMomentum().E();
+            vertex = track->GetPosition();
+        }
+    }
+    if (tempMuonT == 10E+5) {
         return;
     }
 
-    //single track selection
-    if (NumberOfAssociated(muonObject, objects) != 1)
+    //select channel
+    //vertex activity : 40m
+    //single track channel
+    int numAssociated = 0;
+    for (const auto& o : *objects) {
+        if (!isValidObject(o))
+            continue;
+        Cube::Handle<Cube::ReconTrack> track = o;
+        Cube::Handle<Cube::ReconCluster> cluster = o;
+        if (track && (track->GetPosition().Vect() - vertex.Vect()).Mag() < 40) {
+            numAssociated++;
+        }
+    }
+    if (numAssociated == 1) {
+        singleTrack++;
+    }
+    if (numAssociated != 1) {
         return;
+    }
 
-    //earliestObject selection
+    //first object
+    //muon activity : 30mm
     Cube::Handle<Cube::ReconObject> earliestObject;
-    try {
-        earliestObject = GetEarliestObject(muonObject, objects, 20);
-    } catch (std::runtime_error e) {
-        std::cout << e.what() << std::endl;
-        return;
+    float tempEarliestT = 10E+5;
+    for (const auto& m : muonObjectVector) {
+        if (!isValidObject(m))
+            continue;
+        for (const auto& o : *objects) {
+            if (!isValidObject(o))
+                continue;
+            Cube::Handle<Cube::ReconTrack> track = o;
+            Cube::Handle<Cube::ReconCluster> cluster = o;
+            if (track) {
+                if (Cube::Tool::AreNeighboringObjects(*m, *track, 30)) {
+                    continue;
+                } else if (track->GetMedian().T() < tempEarliestT && track->GetEDeposit() > 20) {
+                    tempEarliestT = track->GetMedian().T();
+                    earliestObject = o;
+                }
+            } else if (cluster) {
+                if (Cube::Tool::AreNeighboringObjects(*m, *cluster, 30)) {
+                    continue;
+                } else if (cluster->GetMedian().T() < tempEarliestT && cluster->GetEDeposit() > 20) {
+                    tempEarliestT = cluster->GetMedian().T();
+                    earliestObject = o;
+                }
+            }
+        }
     }
-
-    //earliestObject trajectory
-    Cube::Handle<Cube::G4Trajectory> earliestTraj;
-    try {
-        earliestTraj = GetObjectTrajectory(event, earliestObject, trajectories);
-    } catch (std::runtime_error e) {
-        std::cout << e.what() << std::endl;
+    if (!isValidObject(earliestObject))
         return;
-    }
 
-    //earliestObject check
     Cube::Handle<Cube::ReconTrack> earliestTrack = earliestObject;
     Cube::Handle<Cube::ReconCluster> earliestCluster = earliestObject;
-    if (!earliestCluster && !earliestTrack)
-        return;
 
-    double tempAvgNeighborDistance = 1E+8;
+    //earliestObject trajectory
+    Cube::Handle<Cube::G4Trajectory> earliestTraj = trajectories[Cube::Tool::MainTrajectory(*event, *earliestObject)];
+
+    //number of branches
     int tempNumberOfBranches = 0;
     for (auto& o : *objects) {
-        if (o == muonObject) continue;
+        bool isMuon = false;
+        for (const auto& m : muonObjectVector) {
+            if (o == m) {
+                isMuon = true;
+                break;
+            }
+        }
+        if (isMuon) continue;
         if (o == earliestObject) continue;
         double distance = 10000;
         distance = Cube::Tool::DistanceBetweenObjects(*earliestObject, *o);
@@ -374,29 +328,47 @@ void Analysis(Cube::Event* event) {
             tempNumberOfBranches++;
     }
     numberOfBranches = tempNumberOfBranches;
+    double muonTime = vertex.T();
 
-    double muonTime = muonObject->GetPosition().T();
+    //neighbor distance
+    neighborDistance = 1E+8;
+    for (auto& o : *objects) {
+        bool isMuon = false;
+        for (const auto& m : muonObjectVector) {
+            if (o == m) {
+                isMuon = true;
+                break;
+            }
+        }
+        if (isMuon) continue;
+        if (o == earliestObject) continue;
+        double distance = Cube::Tool::DistanceBetweenObjects(*earliestObject, *o);
+        if (distance < neighborDistance) {
+            neighborDistance = distance;
+        }
+    }
+    if (neighborDistance == 1E+8) {
+        neighborDistance = -10;
+    }
 
     //tof;
     tof = (earliestTrack ? 
             earliestTrack->GetMedian().T() - muonTime : 
             earliestCluster->GetMedian().T() - muonTime);
     //if (tof < 0)
-        //return;
+    //return;
     //leverArm;
     leverArm = (earliestTrack? 
-            (earliestTrack->GetPosition().Vect() - muonObject->GetPosition().Vect()).Mag() :
-            (earliestCluster->GetPosition().Vect() - muonObject->GetPosition().Vect()).Mag());
+            (earliestTrack->GetPosition().Vect() - vertex.Vect()).Mag() :
+            (earliestCluster->GetPosition().Vect() - vertex.Vect()).Mag());
     //angle;
     angle = (earliestTrack?
-            TMath::Cos((earliestTrack->GetPosition() - muonObject->GetPosition()).Angle(beamDirection)) :
-            TMath::Cos((earliestCluster->GetPosition() - muonObject->GetPosition()).Angle(beamDirection)));
+            TMath::Cos((earliestTrack->GetPosition().Vect() - vertex.Vect()).Angle(beamDirection)) :
+            TMath::Cos((earliestCluster->GetPosition().Vect() - vertex.Vect()).Angle(beamDirection)));
     //eDep;
     eDep = (earliestTrack?
             earliestTrack->GetEDeposit() :
             earliestCluster->GetEDeposit());
-    //neighborDistance;
-    neighborDistance = GetNeighborDistance(muonObject, earliestObject, objects);
     //trueMuonE 
     trueMuonE = muonE;
     //recoMuonE
@@ -421,7 +393,6 @@ void Analysis(Cube::Event* event) {
     recoNu = recoNeutronKE;
     //trueNeutronKE
     trueNeutronKE = -10;
-    trackNum = NumberOfAssociated(muonObject, objects);
 
     int earliestTrajID = Cube::Tool::MainTrajectory(*event,*earliestObject);
     int earliestPrim = Cube::Tool::PrimaryId(*event,earliestTrajID);
@@ -446,7 +417,6 @@ void Analysis(Cube::Event* event) {
         if (trajectories[earliestPrim]->GetPDGCode() == 2112 && parentPdg == 2112) {
             category = 0;
             trueNeutronKE = trajectories[earliestPrim]->GetInitialMomentum().E() - 939.565;
-            std::cout << "trueNeutronKE: " << trueNeutronKE << std::endl;
         }
         else {
             category = 2;
@@ -457,7 +427,6 @@ void Analysis(Cube::Event* event) {
         if (trajectories[earliestPrim]->GetPDGCode() == 2112 && parentPdg == 2112) {
             category = 1;
             trueNeutronKE = trajectories[earliestPrim]->GetInitialMomentum().E() - 939.565;
-            std::cout << "trueNeutronKE: " << trueNeutronKE << std::endl;
         } else {
             category = 3;
         }
