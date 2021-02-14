@@ -53,6 +53,7 @@ int trackNum;
 int objectPDG;
 //0: sig track, 1: sig cluster, 2: bkg track, 3: bkg cluster
 int category;
+int isSecondary;
 float leptonAngle;
 float leptonMomentum;
 float Q2;
@@ -69,7 +70,7 @@ int StdHepStatus[1000];
 int StdHepPdg[1000]; 
 int StdHepN; 
 
-const double THRESHOLD = 20;
+const double THRESHOLD = 10;
 
 void Analysis(Cube::Event* event);
 int singleTrack = 0;
@@ -96,6 +97,7 @@ int main(int argc, char** argv) {
     outputTree->Branch("primaryPDG", &primaryPDG, "primaryPDG/I");
     outputTree->Branch("parentPDG", &parentPDG, "parentPDG/I");
     outputTree->Branch("objectPDG", &objectPDG, "objectPDG/I");
+    outputTree->Branch("isSecondary", &isSecondary, "isSecondary/I");
     outputTree->Branch("numberOfBranches", &numberOfBranches, "numberOfBranches/I");
     outputTree->Branch("leptonAngle", &leptonAngle, "leptonAngle/F");
     outputTree->Branch("leptonMomentum", &leptonMomentum, "leptonMomentum/F");
@@ -194,6 +196,7 @@ void Analysis(Cube::Event* event)
     primaryPDG = -10;
     parentPDG = -10;
     objectPDG = -10;
+    isSecondary = -10;
     numberOfBranches = -10;
     leptonAngle = -10;
     leptonMomentum = -10;
@@ -287,14 +290,14 @@ void Analysis(Cube::Event* event)
             if (track) {
                 if (Cube::Tool::AreNeighboringObjects(*m, *track, 30)) {
                     continue;
-                } else if (track->GetMedian().T() < tempEarliestT && track->GetEDeposit() > 20) {
+                } else if (track->GetMedian().T() < tempEarliestT && track->GetEDeposit() > THRESHOLD) {
                     tempEarliestT = track->GetMedian().T();
                     earliestObject = o;
                 }
             } else if (cluster) {
                 if (Cube::Tool::AreNeighboringObjects(*m, *cluster, 30)) {
                     continue;
-                } else if (cluster->GetMedian().T() < tempEarliestT && cluster->GetEDeposit() > 20) {
+                } else if (cluster->GetMedian().T() < tempEarliestT && cluster->GetEDeposit() > THRESHOLD) {
                     tempEarliestT = cluster->GetMedian().T();
                     earliestObject = o;
                 }
@@ -414,6 +417,9 @@ void Analysis(Cube::Event* event)
     //0: sig track, 1: sig cluster, 2: bkg track, 3: bkg cluster
     if (earliestTrack) {
         trackLength = GetTrackLength(earliestTrack);
+        if (parentId != -1 && parentPdg == 2112) {
+            isSecondary = 1;
+        }
         if (trajectories[earliestPrim]->GetPDGCode() == 2112 && parentPdg == 2112) {
             category = 0;
             trueNeutronKE = trajectories[earliestPrim]->GetInitialMomentum().E() - 939.565;
@@ -424,6 +430,9 @@ void Analysis(Cube::Event* event)
     }
 
     if (earliestCluster) {
+        if (parentId != -1 && parentPdg == 2112) {
+            isSecondary = 1;
+        }
         if (trajectories[earliestPrim]->GetPDGCode() == 2112 && parentPdg == 2112) {
             category = 1;
             trueNeutronKE = trajectories[earliestPrim]->GetInitialMomentum().E() - 939.565;
