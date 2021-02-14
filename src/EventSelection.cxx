@@ -53,7 +53,6 @@ int trackNum;
 int objectPDG;
 //0: sig track, 1: sig cluster, 2: bkg track, 3: bkg cluster
 int category;
-int isSecondary;
 float leptonAngle;
 float leptonMomentum;
 float Q2;
@@ -70,7 +69,7 @@ int StdHepStatus[1000];
 int StdHepPdg[1000]; 
 int StdHepN; 
 
-const double THRESHOLD = 10;
+const double THRESHOLD = 20;
 
 void Analysis(Cube::Event* event);
 int singleTrack = 0;
@@ -97,7 +96,6 @@ int main(int argc, char** argv) {
     outputTree->Branch("primaryPDG", &primaryPDG, "primaryPDG/I");
     outputTree->Branch("parentPDG", &parentPDG, "parentPDG/I");
     outputTree->Branch("objectPDG", &objectPDG, "objectPDG/I");
-    outputTree->Branch("isSecondary", &isSecondary, "isSecondary/I");
     outputTree->Branch("numberOfBranches", &numberOfBranches, "numberOfBranches/I");
     outputTree->Branch("leptonAngle", &leptonAngle, "leptonAngle/F");
     outputTree->Branch("leptonMomentum", &leptonMomentum, "leptonMomentum/F");
@@ -106,17 +104,18 @@ int main(int argc, char** argv) {
 
     int eventNum = 0;
     int fileNum = 0;
+    int startNum = 0;
+    std::cout << "start?" << std::endl;
+    std::cin >> startNum;
     std::cout << "file num?" << std::endl;
     std::cin >> fileNum;
     double avgTime = 0;
 
     //std::unique_ptr<TChain> inputChain = std::make_unique<TChain> ("CubeEvents");
 
-    for (int j = 0; j < fileNum; j++) {
-        //TFile inputFile(Form("/Users/gwon/Analysis/datafiles/newfile/full3DST.antineutrino.%d.cuberecon_Jan1_2021.root",j));
-        TFile inputFile(Form("/Users/gwon/Analysis/datafiles/CC/full3DST.antineutrino.%d.cuberecon_Jan1_2021_CCSelected.root",j));
-        TFile inputGenieFile(Form("/Users/gwon/Analysis/datafiles/CC/full3DST.antineutrino.%d.rootracker_CCSelected.root",j+1));
-        //TFile inputGenieFile(Form("/Users/gwon/CubeAnalysis/datafiles/latest/full3DST.antineutrino.%d.rootracker.root",j+1));
+    for (int j = startNum; j < fileNum+startNum; j++) {
+        TFile inputFile(Form("/pnfs/dune/persistent/users/gyang/3DST/cuberecon/standardGeo15/PROD2/full3DST.antineutrino.%d.cuberecon_newSize.root",j+1));
+        TFile inputGenieFile(Form("/pnfs/dune/persistent/users/gyang/3DST/genie/fullGeo/standardGeo15/PROD2/full3DST.antineutrino.%d.3dstgenie3.rootracker.root",j+1));
         if (!inputFile.IsOpen() || !inputGenieFile.IsOpen())
             continue;
         if (inputFile.TestBit(TFile::kRecovered) || inputGenieFile.TestBit(TFile::kRecovered))
@@ -162,8 +161,29 @@ double GetTrackLength(Cube::Handle<Cube::ReconTrack>& earliestTrack) {
     return tempTrackLength;
 }
 
+bool isTPC(const Cube::Handle<Cube::ReconObject>& object)
+{
+    Cube::Handle<Cube::HitSelection> inputHits = object->GetHitSelection();
+
+    // Check if this is for the tpc.
+    bool isTPC = false;
+    for (Cube::HitSelection::iterator h = inputHits->begin();
+         h != inputHits->end(); ++h) {
+        if (!Cube::Info::IsTPC((*h)->GetIdentifier())) continue;
+        isTPC = true;
+        break;
+    }
+    return isTPC;
+}
+
+
 bool isValidObject(const Cube::Handle<Cube::ReconObject>& object)
 {
+    if (!object)
+        return false;
+    if (isTPC(object))
+        return false;
+
     Cube::Handle<Cube::ReconTrack> track = object;
     Cube::Handle<Cube::ReconCluster> cluster = object;
     if (!track && !cluster)
@@ -196,12 +216,12 @@ void Analysis(Cube::Event* event)
     primaryPDG = -10;
     parentPDG = -10;
     objectPDG = -10;
-    isSecondary = -10;
     numberOfBranches = -10;
     leptonAngle = -10;
     leptonMomentum = -10;
     Q2 = -10;
     Q32 = -10;
+
 
     for (int i = 0; i < StdHepN; ++i) {
         if (StdHepStatus[i] == 1 && StdHepPdg[i] == -13) {
@@ -224,8 +244,9 @@ void Analysis(Cube::Event* event)
     //muon vector
     std::vector<Cube::Handle<Cube::ReconObject>> muonObjectVector;
     for (const auto& o : *objects) {
-        if (!isValidObject(o))
+        if (!isValidObject(o)) {
             continue;
+        }
         Cube::Handle<Cube::ReconTrack> track = o;
         Cube::Handle<Cube::ReconCluster> cluster = o;
         int mainTraj = Cube::Tool::MainTrajectory(*event, *o);
@@ -234,6 +255,8 @@ void Analysis(Cube::Event* event)
             muonObjectVector.push_back(o);
         }
     }
+    if (muonObjectVector.size() == 0)
+        return;
 
     //select vertex
     //earliest muon 'track' position
@@ -316,6 +339,8 @@ void Analysis(Cube::Event* event)
     //number of branches
     int tempNumberOfBranches = 0;
     for (auto& o : *objects) {
+        if (!isValidObject(o))
+            continue;
         bool isMuon = false;
         for (const auto& m : muonObjectVector) {
             if (o == m) {
@@ -336,6 +361,8 @@ void Analysis(Cube::Event* event)
     //neighbor distance
     neighborDistance = 1E+8;
     for (auto& o : *objects) {
+        if (!isValidObject(o))
+            continue;
         bool isMuon = false;
         for (const auto& m : muonObjectVector) {
             if (o == m) {
@@ -417,9 +444,6 @@ void Analysis(Cube::Event* event)
     //0: sig track, 1: sig cluster, 2: bkg track, 3: bkg cluster
     if (earliestTrack) {
         trackLength = GetTrackLength(earliestTrack);
-        if (parentId != -1 && parentPdg == 2112) {
-            isSecondary = 1;
-        }
         if (trajectories[earliestPrim]->GetPDGCode() == 2112 && parentPdg == 2112) {
             category = 0;
             trueNeutronKE = trajectories[earliestPrim]->GetInitialMomentum().E() - 939.565;
@@ -430,9 +454,6 @@ void Analysis(Cube::Event* event)
     }
 
     if (earliestCluster) {
-        if (parentId != -1 && parentPdg == 2112) {
-            isSecondary = 1;
-        }
         if (trajectories[earliestPrim]->GetPDGCode() == 2112 && parentPdg == 2112) {
             category = 1;
             trueNeutronKE = trajectories[earliestPrim]->GetInitialMomentum().E() - 939.565;
