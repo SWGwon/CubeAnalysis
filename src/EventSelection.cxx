@@ -240,6 +240,14 @@ void Analysis(Cube::Event* event)
     if (!objects) 
         return;
 
+    for (const auto& o : *objects) {
+        if (!isValidObject(o)) {
+            continue;
+        }
+        Cube::Handle<Cube::ReconTrack> track = o;
+        Cube::Handle<Cube::ReconCluster> cluster = o;
+    }
+
     //muon vector
     std::vector<Cube::Handle<Cube::ReconObject>> muonObjectVector;
     for (const auto& o : *objects) {
@@ -293,9 +301,9 @@ void Analysis(Cube::Event* event)
     if (numAssociated == 1) {
         singleTrack++;
     }
-    if (numAssociated != 1) {
-        return;
-    }
+    //if (numAssociated != 1) {
+        //return;
+    //}
 
     //first object
     //muon activity : 30mm
