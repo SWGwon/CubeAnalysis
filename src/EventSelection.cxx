@@ -114,8 +114,8 @@ int main(int argc, char** argv) {
     //std::unique_ptr<TChain> inputChain = std::make_unique<TChain> ("CubeEvents");
 
     for (int j = startNum; j < fileNum+startNum; j++) {
-        TFile inputFile(Form("/pnfs/dune/persistent/users/gyang/3DST/cuberecon/standardGeo15/PROD2/full3DST.antineutrino.%d.cuberecon_newSize.root",j+1));
-        TFile inputGenieFile(Form("/pnfs/dune/persistent/users/gyang/3DST/genie/fullGeo/standardGeo15/PROD2/full3DST.antineutrino.%d.3dstgenie3.rootracker.root",j+1));
+        TFile inputFile(Form("/Users/gwon/Analysis/datafiles/newsize/full3DST.antineutrino.%d.cuberecon_newSize.root",j+1));
+        TFile inputGenieFile(Form("/Users/gwon/Analysis/datafiles/genie/full3DST.antineutrino.%d.genie3.rootracker.root",j+1));
         if (!inputFile.IsOpen() || !inputGenieFile.IsOpen())
             continue;
         if (inputFile.TestBit(TFile::kRecovered) || inputGenieFile.TestBit(TFile::kRecovered))
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
         inputChain->SetBranchAddress("Event", &event);
 
         for (int i = 0; i < inputChain->GetEntries(); i++) {
-            std::cout << "event: " << eventNum << std::endl;
+            //std::cout << "event: " << eventNum << std::endl;
             eventNum++;
             inputChain->GetEntry(i);
             inputGenieTree->GetEntry(i);
@@ -198,7 +198,7 @@ bool isValidObject(const Cube::Handle<Cube::ReconObject>& object)
 
 void Analysis(Cube::Event* event) 
 {
-    trueNeutrinoE = -10;
+    trueNeutrinoE = 0;
     recoNeutrinoE = -10;
     trueNu = -10;
     recoNu = -10;
@@ -221,7 +221,6 @@ void Analysis(Cube::Event* event)
     leptonMomentum = -10;
     Q2 = -10;
     Q32 = -10;
-
 
     for (int i = 0; i < StdHepN; ++i) {
         if (StdHepStatus[i] == 1 && StdHepPdg[i] == -13) {
@@ -407,7 +406,16 @@ void Analysis(Cube::Event* event)
     double recoBeta = (leverArm/tof)/300;
     recoNeutronKE = 939.565*(1./std::pow(1.-std::pow(recoBeta,2),0.5)-1.); 
     //trueNeutrinoE
-    trueNeutrinoE = StdHepP4[0][3]*1000.;
+    //trueNeutrinoE = StdHepP4[0][3]*1000.;
+    std::vector<int> primaries = Cube::Tool::AllPrimaries(*event);
+    for (auto i : primaries) {
+        if (trajectories[i]->GetPDGCode() == 2112 || trajectories[i]->GetPDGCode() == 2212) {
+            trueNeutrinoE += trajectories[i]->GetInitialMomentum().E();
+            trueNeutrinoE -= 939.565;
+        } else {
+            trueNeutrinoE += trajectories[i]->GetInitialMomentum().E();
+        }
+    }
     //recoNeutrinoE
     recoNeutrinoE = recoNeutronKE + recoMuonE + 40;
     //trueNu
@@ -461,5 +469,7 @@ void Analysis(Cube::Event* event)
             category = 3;
         }
     }
+
+    //std::cout << "true: " << trueNeutrinoE << ", reco: " << recoNeutrinoE << std::endl;
     outputTree->Fill();
 }
